@@ -132,6 +132,7 @@ sed -i '/PIHOLE_DNS/d' /etc/pihole/setupVars.conf
 echo "PIHOLE_DNS_1=127.0.0.1#54" >> /etc/pihole/setupVars.conf
 echo "REV_SERVER=false" >> /etc/pihole/setupVars.conf
 echo "proxy-dnssec" >> /etc/dnsmasq.d/02-dnscrypt.conf
+sed -i "s/server\=$DNSServer/server\=127\.0\.0\.1\#54/g" /etc/dnsmasq.d/01-pihole.conf
 pihole restartdns
 
 ## Install log2ram and configure it to use rsync
