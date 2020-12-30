@@ -1,7 +1,7 @@
 # Setup_Pi-Hole
 ## A simple Shell script for setting up Pi-Hole with dnscrypt &amp; log2ram on Raspberry Pi OS
 
-The purpose of the script is to automate the inital configuration of Raspberry Pi OS and the subeseqent instalation of Pi-Hole, dnscrypt-proxy and log2ram with suffictient configuration to run.
+The purpose of the script is to automate the inital configuration of Raspberry Pi OS and the subeseqent instalation of Pi-Hole, dnscrypt-proxy and log2ram with suffictient configuration to run using Cloudflare as the upstream resolver.
 This script is intended to be run on a fresh installation of Raspberry Pi OS  Some checks exist, in order to prevent the script from breaking an already configured Pi, but none of them can be considered bulletproof, so running on a Pi with some existing configuration is a risk.<br />
 
 Follow these steps to install and configure Pi-Hole on your Raspberry Pi: 
