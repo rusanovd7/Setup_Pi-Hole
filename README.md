@@ -17,9 +17,10 @@ Follow these steps to install and configure Pi-Hole on your Raspberry Pi:
 9. Reboot
 10. Login as `pi` and become `root`. Use the new IP address when connecting
 10. Create a password for the new user
-11. `userdel pi`
-12. After the installation the password for the Pi-Hole Web UI is "pihole". Execute `pihole -a -p` in order to set a new password.
-13. (optional) Add more blocklists and configure the correct timezone
+11. Exit and login as the new user
+12. `sudo userdel pi`
+13. After the installation the password for the Pi-Hole Web UI is "pihole". Execute `pihole -a -p` in order to set a new password.
+14. (optional) Add more blocklists and configure the correct timezone
 
 The following guides were used as a reference: <br />
 https://blog.alexellis.io/hardened-raspberry-pi-nas/ - for the initial OS config and partial hardening <br />
