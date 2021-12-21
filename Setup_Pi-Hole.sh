@@ -16,6 +16,8 @@ DNSServer="1.1.1.1"
 NewHostname=""
 # "yes" to disable IPv6 and "no" to leave it enabled
 DisableIPv6="yes"
+# "yes" to disable bluetooth
+DisableBluetooth="yes"
 #
 # If you have a Raspberry Pi running a freshly installed Raspberry Pi OS and you have no idea what you are doing, do not edit past this line.
 ##########################
@@ -26,16 +28,20 @@ apt install vim locate rsync
 if [[ $(compgen -u | grep ${NewUserName}) == "" ]]; then
     echo "Creating user ${NewUserName}"
     useradd ${NewUserName} -s /bin/bash -m -G adm,sudo && echo "User ${NewUserName} added"
-    sed -i 's/\#alias ll='\''ls -l'\''/alias ll='\''ls \-l'\''/g' /home/${NewUserName}/.bashrc
-else 
+    sed -i '/#alias ll=/s/^#//' "/home/${NewUserName}/.bashrc"
+else
     echo "User ${NewUserName} already exists."
 fi
 
 if [[ $(grep "gpu_mem" /boot/config.txt ) == "" ]]; then
-    echo "gpu_mem=16" | sudo tee -a /boot/config.txt    #Minimize the amount of memory allocated for the GPU
+    echo "gpu_mem=16" >> /boot/config.txt    #Minimize the amount of memory allocated for the GPU
     echo "Setting gpu_mem to 16MB"
 else
     echo "gpu_mem already set to a custom value. Skipping."
+fi
+
+if [[ "$DisableBluetooth" == "yes" && $(grep "disable-bt" /boot/config.txt) == "" ]]; then
+  echo "dtoverlay=disable-bt" >> /boot/config.txt
 fi
 
 if [[ "${DisableIPv6}" == "yes" && $(grep "net.ipv6.conf.all.disable_ipv6" /etc/sysctl.conf) == "" ]]; then
@@ -43,19 +49,24 @@ if [[ "${DisableIPv6}" == "yes" && $(grep "net.ipv6.conf.all.disable_ipv6" /etc/
     sysctl -p
 fi
 
-Interface=$(ifconfig | grep -v "127.0.0.1" | grep -B 1 inet\ | grep -v inet | cut -d ':' -f 1)
+Interface=$(ip a | grep -v 127.0.0.1 | grep inet | awk '{ print $NF }')
 
-if [[ $(grep static\ ip_address /etc/dhcpcd.conf | grep -v \#) == "" ]]; then
+if [[ $(grep "static ip_address" /etc/dhcpcd.conf | grep -v "#") == "" ]]; then
     echo "Writing new config for ${Interface}"
-    cat << EOF >> /etc/dhcpcd.conf
+    cat << _static_ip >> /etc/dhcpcd.conf
 interface ${Interface}
-        static ip_address=${IPAddress}/${NetMask}
-        static routers=${DefaultGW}
-        static domain_name_servers=${DNSServer}
-EOF
+static ip_address=${IPAddress}/${NetMask}
+static routers=${DefaultGW}
+static domain_name_servers=${DNSServer}
+_static_ip
     echo "${Interface} configured with ${IPAddress}/${NetMask}"
 else
     echo "A static IP address appears to have been already set. Please check."
+fi
+
+# https://www.raspberrypi.com/documentation/computers/configuration.html#wifi-cc-rfkill
+if [[ "$Interface" == "wlan"* ]]; then
+    rfkill unblock wlan
 fi
 
 CurrentHostname=$(hostname)
@@ -124,21 +135,30 @@ EOF
     /opt/dnscrypt-proxy/dnscrypt-proxy -service start
 
 else
-    echo "dncrypt-proxty seems to already have been installed"
+    echo "dncrypt-proxy seems to already have been installed"
 fi
 
 #Configure Pi-Hole to use dnscryp-proxy
 sed -i '/PIHOLE_DNS/d' /etc/pihole/setupVars.conf
 echo "PIHOLE_DNS_1=127.0.0.1#54" >> /etc/pihole/setupVars.conf
-echo "REV_SERVER=false" >> /etc/pihole/setupVars.conf
+
+if [[ $(grep "REV_SERVER=" /etc/pihole/setupVars.conf) == "" ]]; then
+    echo "REV_SERVER=false" >> /etc/pihole/setupVars.conf
+else
+    sed -i '/REV_SERVER=/c \REV_SERVER=false' /etc/pihole/setupVars.conf
+fi
+
+[[ -f /etc/dnsmasq.d/02-dnscrypt.conf ]] && sed -i "/proxy-dnssec/d" /etc/dnsmasq.d/02-dnscrypt.conf
 echo "proxy-dnssec" >> /etc/dnsmasq.d/02-dnscrypt.conf
-sed -i "s/server\=$DNSServer/server\=127\.0\.0\.1\#54/g" /etc/dnsmasq.d/01-pihole.conf
+
+sed -i "/server=/c \server=127.0.0.1#54" /etc/dnsmasq.d/01-pihole.conf
 pihole restartdns
 
+DebianRelease=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f2)
 ## Install log2ram and configure it to use rsync
-echo "deb http://packages.azlux.fr/debian/ buster main" | sudo tee /etc/apt/sources.list.d/azlux.list
+echo "deb http://packages.azlux.fr/debian/ $DebianRelease main" | sudo tee /etc/apt/sources.list.d/azlux.list
 wget -qO - https://azlux.fr/repo.gpg.key | sudo apt-key add -
 apt update
 apt install log2ram
 
-sed -i 's/USE_RSYNC=false/USE_RSYNC=true/g' /etc/log2ram.conf
+sed -i '/USE_RSYNC=/s/false/true/g' /etc/log2ram.conf
