@@ -1,29 +1,10 @@
 #!/bin/bash
 #set -x
 
-##########################
-# Enter configuration parameters below
-#
-# Username that will be used to logon to the Pi
-NewUserName=""
-# Static IP address of the Pi
-IPAddress=""
-# Subnet mask in CIDR Subnet Mask Notation (e.g. 24 instead of 255.255.255.0)
-NetMask="24"
-DefaultGW=""
-# IP address of the upstream DNS service
-DNSServer="1.1.1.1"
-NewHostname=""
-# "yes" to disable IPv6 and "no" to leave it enabled
-DisableIPv6="yes"
-# "yes" to disable bluetooth
-DisableBluetooth="yes"
-#
-# If you have a Raspberry Pi running a freshly installed Raspberry Pi OS and you have no idea what you are doing, do not edit past this line.
-##########################
+source ./Setup_Pi-hole_vars.sh
 
 apt update && apt upgrade -y && apt autoremove -y
-apt install vim locate rsync
+apt install neovim locate rsync
 
 if [[ $(compgen -u | grep ${NewUserName}) == "" ]]; then
     echo "Creating user ${NewUserName}"
