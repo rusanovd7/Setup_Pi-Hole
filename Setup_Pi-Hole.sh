@@ -30,7 +30,7 @@ if [[ "${DisableIPv6}" == "yes" && $(grep "net.ipv6.conf.all.disable_ipv6" /etc/
     sysctl -p
 fi
 
-Interface=$(ip a | grep -v 127.0.0.1 | grep inet | awk '{ print $NF }')
+Interface=$(ifconfig | grep -v "127.0.0.1" | grep -B 1 inet\ | grep -v inet | cut -d ':' -f 1)
 
 if [[ $(grep "static ip_address" /etc/dhcpcd.conf | grep -v "#") == "" ]]; then
     echo "Writing new config for ${Interface}"
