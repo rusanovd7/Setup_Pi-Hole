@@ -25,7 +25,11 @@ Follow these steps to install and configure Pi-Hole on your Raspberry Pi:
 17. Configure the Raspberry Pi as the DNS server on your computer(s) and test if DoH with CloudFlare is working with https://1.1.1.1/help
 18. (optional) Add more blocklists and configure the correct timezone
 19. (optional) Refer to the linuxserver.io's WireGuard image page for using the newly installed WireGuard (link below)
-
+<br /><br />
+## Known issues:
+1. The NW interface is configured incorrectly if more than one interfaces have assigned IP addreseses, other than 127.0.0.1 (e.g. if Docker is already installed)
+2. Pi-Hole cannot be used as a DNS server for WireGuard clients connected to the same Pi\
+<br />
 The following guides were used as a reference: <br />
 https://blog.alexellis.io/hardened-raspberry-pi-nas/ - for the initial OS config and partial hardening <br />
 https://www.smarthomebeginner.com/pi-hole-setup-guide/ - sequence of the steps <br />
