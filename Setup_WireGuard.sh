@@ -1,10 +1,14 @@
 #!/bin/bash
 
-# Install Docker
+source ./Setup_Pi-hole_vars.sh
+
+# Install Docker. Fails to start the docker service
 if [[ "$(apt list 2>&1 | grep docker-ce)" == "" ]]; then
     curl -sSL https://get.docker.com | sh
     usermod -aG docker "${NewUserName}"
 fi
+
+sleep 10
 
 systemctl restart docker
 
@@ -14,9 +18,7 @@ systemctl restart docker
 #fi 
 
 # Create the WireGuard docker-compose.yml file and start the container
-if [ ! -d /opt/wireguard-server ]; then
-    mkdir /opt/wireguard-server
-fi
+mkdir -p /opt/wireguard-server
 cd /opt/wireguard-server || exit 1
 
 cat << EOF > /opt/wireguard-server/docker-compose.yml
@@ -47,7 +49,7 @@ services:
       - ${WGPort}:51820/udp
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
-#       - net.ipv4.ip_forward=1
+      - net.ipv4.ip_forward=1
     restart: unless-stopped
 EOF
 
