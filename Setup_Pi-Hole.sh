@@ -3,18 +3,20 @@
 
 source ./Setup_Pi-hole_vars.sh
 
-apt update && apt upgrade -y && apt autoremove -y
-apt install neovim locate rsync
+#pushd . || exit 1
 
-if [[ $(compgen -u | grep ${NewUserName}) == "" ]]; then
+apt update && apt upgrade -y && apt autoremove -y
+apt install neovim locate rsync -y
+
+if [[ $(compgen -u | grep "${NewUserName}") == "" ]]; then
     echo "Creating user ${NewUserName}"
-    useradd ${NewUserName} -s /bin/bash -m -G adm,sudo && echo "User ${NewUserName} added"
+    useradd "${NewUserName}" -s /bin/bash -m -G adm,sudo && echo "User ${NewUserName} added"
     sed -i '/#alias ll=/s/^#//' "/home/${NewUserName}/.bashrc"
 else
     echo "User ${NewUserName} already exists."
 fi
 
-if [[ $(grep "gpu_mem" /boot/config.txt ) == "" ]]; then
+if [[ "${MaxRAM}" == "yes" && $(grep "^gpu_mem=" /boot/config.txt) == "" ]]; then
     echo "gpu_mem=16" >> /boot/config.txt    #Minimize the amount of memory allocated for the GPU
     echo "Setting gpu_mem to 16MB"
 else
@@ -22,7 +24,7 @@ else
 fi
 
 if [[ "$DisableBluetooth" == "yes" && $(grep "disable-bt" /boot/config.txt) == "" ]]; then
-  echo "dtoverlay=disable-bt" >> /boot/config.txt
+    echo "dtoverlay=disable-bt" >> /boot/config.txt
 fi
 
 if [[ "${DisableIPv6}" == "yes" && $(grep "net.ipv6.conf.all.disable_ipv6" /etc/sysctl.conf) == "" ]]; then
@@ -30,6 +32,7 @@ if [[ "${DisableIPv6}" == "yes" && $(grep "net.ipv6.conf.all.disable_ipv6" /etc/
     sysctl -p
 fi
 
+# Checks which interface is connected. Does not work if more than one interfaces are connected (e.g. if Docker is installed)
 Interface=$(ifconfig | grep -v "127.0.0.1" | grep -B 1 inet\ | grep -v inet | cut -d ':' -f 1)
 
 if [[ $(grep "static ip_address" /etc/dhcpcd.conf | grep -v "#") == "" ]]; then
@@ -48,6 +51,9 @@ fi
 # https://www.raspberrypi.com/documentation/computers/configuration.html#wifi-cc-rfkill
 if [[ "$Interface" == "wlan"* ]]; then
     rfkill unblock wlan
+# Disables WiFi if not in use
+elif [[ "${DisableWiFi}" == "yes" && $(grep "disable-wifi" /boot/config.txt) == "" ]]; then
+    echo "dtoverlay=disable-wifi" >> /boot/config.txt
 fi
 
 CurrentHostname=$(hostname)
@@ -89,10 +95,13 @@ else
     echo "Pi-Hole seems to already have been installed"
 fi
 
-## Go to https://github.com/dnscrypt/dnscrypt-proxy/releases/ and pick the link to the latest release for your architecture. Check the commands below to make sure they are compatible with your setup.
+if [[ "${DNSCryptLink}" == "" ]]; then
+    DNSCryptLink="https://github.com/DNSCrypt/dnscrypt-proxy/releases/download/2.1.1/dnscrypt-proxy-linux_arm-2.1.1.tar.gz"
+fi
+
 if [[ $(systemctl status dnscrypt-proxy | grep -i "active (running)") == "" ]]; then
     cd /opt || exit 1
-    wget https://github.com/DNSCrypt/dnscrypt-proxy/releases/download/2.0.44/dnscrypt-proxy-linux_arm-2.0.44.tar.gz
+    wget "${DNSCryptLink}"
     tar -xvzf ./dnscrypt-proxy-linux_*.tar.gz
     rm dnscrypt-proxy-linux_*.tar.gz
     mv /opt/linux-arm /opt/dnscrypt-proxy || exit 1
@@ -136,10 +145,10 @@ sed -i "/server=/c \server=127.0.0.1#54" /etc/dnsmasq.d/01-pihole.conf
 pihole restartdns
 
 DebianRelease=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f2)
-## Install log2ram and configure it to use rsync
+## Install log2ram, configure it to use rsync and increase the size of the tmpfs log2ram from 40MB to 100 MB
 echo "deb http://packages.azlux.fr/debian/ $DebianRelease main" | sudo tee /etc/apt/sources.list.d/azlux.list
 wget -qO - https://azlux.fr/repo.gpg.key | sudo apt-key add -
 apt update
 apt install log2ram
-
 sed -i '/USE_RSYNC=/s/false/true/g' /etc/log2ram.conf
+sed -i '/^SIZE=/s/40/100/g' /etc/log2ram.conf
