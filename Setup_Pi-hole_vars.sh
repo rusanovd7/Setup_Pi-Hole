@@ -26,8 +26,8 @@ export DNSCryptLink="https://github.com/DNSCrypt/dnscrypt-proxy/releases/downloa
 #
 ######## WireGuard server setup ########
 # Ignore the variables below if you do not need the WireGuard container
-# Change to yes if you want to install the linuxserver.io WireGuard container
-export InstallWireGuard="no"
+# Run the script Setup_WireGuard.sh manually after installing Pi-Hole and rebooting
+#
 # Change to your time zone
 export Timezone=Europe/Sofia
 # Your external IP address/domain
