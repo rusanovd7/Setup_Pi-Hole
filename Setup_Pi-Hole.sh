@@ -4,7 +4,7 @@
 source ./Setup_Pi-hole_vars.sh
 
 apt update && apt upgrade -y && apt autoremove -y
-apt install neovim locate rsync
+apt install -y neovim locate rsync
 
 if [[ $(compgen -u | grep ${NewUserName}) == "" ]]; then
     echo "Creating user ${NewUserName}"
@@ -92,7 +92,7 @@ fi
 ## Go to https://github.com/dnscrypt/dnscrypt-proxy/releases/ and pick the link to the latest release for your architecture. Check the commands below to make sure they are compatible with your setup.
 if [[ $(systemctl status dnscrypt-proxy | grep -i "active (running)") == "" ]]; then
     cd /opt || exit 1
-    wget https://github.com/DNSCrypt/dnscrypt-proxy/releases/download/2.0.44/dnscrypt-proxy-linux_arm-2.0.44.tar.gz
+    wget "https://github.com/DNSCrypt/dnscrypt-proxy/releases/download/$DnsCryptVersion/dnscrypt-proxy-linux_arm-$DnsCryptVersion.tar.gz"
     tar -xvzf ./dnscrypt-proxy-linux_*.tar.gz
     rm dnscrypt-proxy-linux_*.tar.gz
     mv /opt/linux-arm /opt/dnscrypt-proxy || exit 1
@@ -123,11 +123,15 @@ fi
 sed -i '/PIHOLE_DNS/d' /etc/pihole/setupVars.conf
 echo "PIHOLE_DNS_1=127.0.0.1#54" >> /etc/pihole/setupVars.conf
 
-if [[ $(grep "REV_SERVER=" /etc/pihole/setupVars.conf) == "" ]]; then
-    echo "REV_SERVER=false" >> /etc/pihole/setupVars.conf
-else
-    sed -i '/REV_SERVER=/c \REV_SERVER=false' /etc/pihole/setupVars.conf
-fi
+function update_setting() {
+    if [[ $(grep "$1=" "$3") == "" ]]; then
+        echo "$1=$2" >> "$3"
+    else
+        sed -i "/$1=/c \\$1=$2" "$3"
+    fi
+}
+
+update_setting "REV_SERVER" "false" /etc/pihole/setupVars.conf
 
 [[ -f /etc/dnsmasq.d/02-dnscrypt.conf ]] && sed -i "/proxy-dnssec/d" /etc/dnsmasq.d/02-dnscrypt.conf
 echo "proxy-dnssec" >> /etc/dnsmasq.d/02-dnscrypt.conf
@@ -142,4 +146,5 @@ wget -qO - https://azlux.fr/repo.gpg.key | sudo apt-key add -
 apt update
 apt install log2ram
 
-sed -i '/USE_RSYNC=/s/false/true/g' /etc/log2ram.conf
+update_setting "USE_RSYNC" "true" /etc/log2ram.conf
+update_setting "SIZE" "$Log2RamSize" /etc/log2ram.conf

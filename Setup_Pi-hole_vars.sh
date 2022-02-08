@@ -15,3 +15,7 @@ export NewHostname=""
 export DisableIPv6="yes"
 # "yes" to disable bluetooth
 export DisableBluetooth="yes"
+
+## Go to https://github.com/dnscrypt/dnscrypt-proxy/releases/ and pick the link to the latest release for your architecture. Check the commands below to make sure they are compatible with your setup.
+export DnsCryptVersion="2.1.1"
+export Log2RamSize="200M"
