@@ -157,8 +157,14 @@ wget -qO - https://azlux.fr/repo.gpg.key | sudo apt-key add -
 apt update
 apt install log2ram
 
-# Use "rsync" rather than "cp"
-sed -i '/USE_RSYNC=/s/false/true/g' /etc/log2ram.conf
+# Use "rsync" rather than "cp". No longer necessary
+#sed -i '/USE_RSYNC=/s/false/true/g' /etc/log2ram.conf
 
-# Increase the size of /var/log to 100 MB
-sed -i '/^SIZE=/s/40/100/g' /etc/log2ram.conf
+# Increase the size of /var/log to 100 MB. No longer necessary
+#sed -i '/^SIZE=/s/40/100/g' /etc/log2ram.conf
+
+# Add a blocklist update job every Monday morning
+crontab -l > crontmp
+echo "0 6 * * 1 /usr/local/bin/pihole -g > /home/${NewUserName}/pihole_gravity_update.log 2>&1" >> crontmp
+crontab crontmp
+rm crontmp
