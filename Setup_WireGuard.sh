@@ -5,7 +5,9 @@ source ./Setup_Pi-hole_vars.sh
 # Install Docker. Fails to start the docker service
 if [[ "$(apt list --installed 2>&1 | grep docker-ce)" == "" ]]; then
     curl -sSL https://get.docker.com | sh
-    usermod -aG docker "${NewUserName}" && echo "${NewUserName} added to the \"docker\" group"
+    if [[ "${NewUserName}" != "" ]]; then
+        usermod -aG docker "${NewUserName}" && echo "${NewUserName} added to the \"docker\" group"
+    fi
     sleep 15
     systemctl restart docker %
 else
@@ -13,12 +15,12 @@ else
 fi
 
 
-# Install docker-compose
-if [[ "$(apt list --installed 2>&1 | grep docker-compose)" == "" ]]; then
-    apt install docker-compose -y
-else
-    echo "docker-compose already installed"
-fi 
+## Install docker-compose
+#if [[ "$(apt list --installed 2>&1 | grep docker-compose)" == "" ]]; then
+#    apt install docker-compose -y
+#else
+#    echo "docker-compose already installed"
+#fi
 
 # Create the WireGuard docker-compose.yml file and start the container
 mkdir -p /opt/wireguard-server

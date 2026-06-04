@@ -1,35 +1,74 @@
-# Setup_Pi-Hole
-## Shell scripts for setting up Pi-Hole with dnscrypt, log2ram and an optional WireGuard container on Raspberry Pi OS (Bookworm)
+# Setup Pi-Hole 🚀
+Automated shell scripts for setting up **Pi-Hole** with **dnscrypt-proxy**, optional **log2ram**, and an optional **WireGuard** container on Raspberry Pi OS (Trixie) and other Debian-based distributions.
 
-The purpose of the script `Setup_Pi-Hole.sh` is to automate the initial configuration of 32-bit or 64-bit Raspberry Pi OS (Bookworm only!) and the subesequent instalation of Pi-Hole, dnscrypt-proxy and log2ram with suffictient configuration to run using Cloudflare DoH as the upstream resolver. <br />
-The script `Setup_WireGuard.sh` installs Docker and spins up a WireGuard container using the linuxserver.io image (64-bit Raspberry OS only!). <br />
-This scripts are intended to be run on a fresh installation of Raspberry Pi OS. Some checks exist, in order to prevent the script from breaking an already configured Pi, but none of them can be considered bulletproof, so running on a Pi with some existing configuration is at your own risk. <br />
+## 🏗 Architecture Support & Behavior
+The installation process varies depending on your hardware and OS architecture:
 
-Follow these steps to install and configure Pi-Hole on your Raspberry Pi: 
+*   **64-bit OS (arm64 or amd64):** The script installs Docker and runs Pi-Hole using the official Docker image.
+*   **32-bit OS (armhf):** Since Docker is not supported on 32-bit Raspberry Pi OS, the script will trigger an **interactive installation** via `curl -sSL https://install.pi-hole.net | bash`. 
+    *   *Note:* During interactive setup, specify `127.0.0.1#54` as the upstream resolver (if you changed the port in `Setup_Pi-hole_vars.sh` replace 54 with the port you chose).
+*   **armhf Architecture:** If running on armhf, the script automatically adjusts the dnscrypt-proxy configuration for ARMv6 CPUs (e.g. Pi Zero W) support by downgrading ciphers and changing the upstream resolver to 'cloudflare'.
 
-1. Use the Raspberry Pi Imager  to install the Raspberry Pi OS Lite (minimal) image to the MicroSD card. The Raspberry Pi Imager allows some initial configuration such as username, Wi-Fi network, SSH, etc.
-2. Insert the SD card into the Pi and connect power (and Ethernet if not using WiFi)
-3. SSH into the Pi with the account created by the Raspberry Pi Imager
-4. Copy the scripts `Setup_Pi-Hole.sh` and `Setup_Pi-hole_vars.sh` to a temporary directory on the Raspberry Pi and make them executable
-5. If you would like to install WireGuard, copy `Setup_WireGuard.sh` too (64-bit OS only)
-6. Open the script `Setup_Pi-hole_vars.sh` with a text editor and fill/edit the values according to your requirements
-7. Execute the script `Setup_Pi-Hole.sh` as `root` (or with sudo)
-8. Reboot
-9. Login and become `root`. Use the new IP address when connecting
-10. If the script was used for creating a new user, configure a password for it
-11. After the installation the password for the Pi-Hole Web UI is "pihole". Execute `pihole -a -p` in order to set a new password
-12. Configure the Raspberry Pi as the DNS server on your computer(s) and test if DoH with CloudFlare is working with https://1.1.1.1/help
-13. (optional) Add more blocklists and configure the correct time zone
-14. (optional Run `Setup_WireGuard.sh` to install WireGuard
-15. (optional) Refer to the linuxserver.io's WireGuard image page for using the newly installed WireGuard (link below)
-<br /><br />
-## Known issues:
-1. The NW interface is configured incorrectly if more than one interfaces have assigned IP addreses, other than 127.0.0.1 (e.g. if Docker is already installed)
-<br />
-The following guides were used as a reference: <br />
-https://blog.alexellis.io/hardened-raspberry-pi-nas/ - for the initial OS config and partial hardening <br />
-https://www.smarthomebeginner.com/pi-hole-setup-guide/ - sequence of the steps <br />
-https://blog.sean-wright.com/dns-with-pi-hole-dnscrypt/ - setting up dnscrypt-proxy <br />
-https://github.com/pi-hole/pi-hole/wiki/DNSCrypt-2.0 - setting up dnscrypt-proxy <br />
-https://hub.docker.com/r/linuxserver/wireguard - setting up the WireGuard container <br />
+---
 
+## 🛠 Installation Guide
+
+Follow these steps on a **fresh installation** of Raspberry Pi OS:
+
+- [ ] **1. Prepare SD Card:** Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) to install **Raspberry Pi OS Lite (minimal)**. Configure your username, (Wi-Fi,) time zone and SSH during this step.
+- [ ] **2. Boot & Connect:** Insert the card into your Pi, connect power/Ethernet, and SSH into the device.
+- [ ] **3. Prepare Scripts:** Copy `Setup_Pi-Hole.sh` and `Setup_Pi-hole_vars.sh` to the Pi (or `git clone` this repo) and make them executable.
+- [ ] **4. Allowlist (Optional):** Populate `AllowList.txt` with any domains you wish to explicitly allow (one per line).
+- [ ] **5. WireGuard (64-bit only):** If you want WireGuard, copy `Setup_WireGuard.sh` as well.
+- [ ] **6. Configure Variables:** Open `Setup_Pi-hole_vars.sh` with a text editor and adjust settings to your requirements.
+- [ ] **7. Run Setup:** Execute the script as root: 
+    ```bash
+    sudo ./Setup_Pi-Hole.sh
+    ```
+- [ ] **8. Reboot:** Restart your system once the script finishes.
+
+---
+
+## ⚙️ Post-Installation & Configuration
+
+### 🔑 Accessing Pi-Hole
+After installation, the Web UI password is randomly generated.
+*   **For 64-bit (Docker):** Find the password via:
+    ```bash
+    docker container logs pihole 2>&1 | grep password
+    ```
+*   **To set a new password:**
+    *   **64-bit:** `docker container exec -it pihole bash` and then `pihole setpassword`
+    *   **32-bit (armhf):** `pihole setpassword`
+
+### ✅ Testing
+If using Cloudflare(-security) as the upstream resolver, verify that DNS-over-HTTPS (DoH) is working by visiting: [https://1.1.1.1/help](https://1.1.1.1/help)
+
+### 🛡️ Optional Steps
+*   Add additional blocklists in the Pi-Hole UI.
+*   Install WireGuard using `sudo ./Setup_WireGuard.sh`.
+
+---
+
+## 💡 Optimization (Recommended for Pi Zero / Low-resource devices)
+To reduce CPU and Disk I/O usage on low-power hardware, consider modifying these values in your configuration:
+
+*   `maxDBdays = 7` (Reduces the number of days historic queries are kept; default is 91).
+*   `DBinterval = 1800` or `3600` (Changes how often queries are saved to the DB; default is 60 seconds).
+
+---
+
+## ⚠️ Known Issues & Troubleshooting
+
+**Network Interface Configuration (Raspberry Pi only):**  
+The NW interface configuration will be skipped if more than one interface has an assigned IP address other than `127.0.0.1` (e.g., if Docker is already installed).
+
+**Port Conflicts:**  
+The script checks for ports **53, 80, 443**, and the specified **dnscrypt listen port** (default: 54). The script will abort if any of these are currently in use.
+
+**Systemd-resolved Conflict:**  
+On many modern Linux distributions (like Ubuntu), port 53 is occupied by `systemd-resolved`. You must manually disable this service before running the script.
+
+**ARMv6 CPU Performance (e.g., Pi Zero W):**  
+`dnscrypt-proxy` with TLS 1.3 can cause an e.g Pi Zero W to stay at ~100% CPU load, making un unusable. The script attempts to mitigate this on `armhf` by forcing TLS 1.2 and the `cloudflare` upstream resolver.  
+*Note: This TLS downgrade method may not work in `dnscrypt-proxy` version 2.1.16 or later. Check your `dnscrypt-proxy` version and the official release notes if you encounter issues. The current dnscrypt-proxy version in the Trixie repositories is 2.1.8.*
