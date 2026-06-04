@@ -41,6 +41,9 @@ After installation, the Web UI password is randomly generated.
     *   **64-bit:** `docker container exec -it pihole bash` and then `pihole setpassword`
     *   **32-bit (armhf):** `pihole setpassword`
 
+Navigate to `https://<IP_ADDRESS>/admin/` to access Pi-hole's web interface.
+
+
 ### ✅ Testing
 If using Cloudflare(-security) as the upstream resolver, verify that DNS-over-HTTPS (DoH) is working by visiting: [https://1.1.1.1/help](https://1.1.1.1/help)
 
