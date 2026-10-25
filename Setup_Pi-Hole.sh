@@ -214,12 +214,13 @@ EOF
         while read -r domain; do
             pihole allow "${domain}"
         done < "${CurrentDir}/AllowList.txt"
+
+        # Add a blocklist update job every Monday morning
+        crontab -l > crontmp
+        echo "0 6 * * 1 /usr/local/bin/pihole -g > /home/${NewUserName}/pihole_gravity_update.log 2>&1" >> crontmp
+        crontab crontmp
+        rm crontmp
     fi
-    # Add a blocklist update job every Monday morning
-    crontab -l > crontmp
-    echo "0 6 * * 1 /usr/local/bin/pihole -g > /home/${NewUserName}/pihole_gravity_update.log 2>&1" >> crontmp
-    crontab crontmp
-    rm crontmp
 else
     echo "Pi-hole seems to have already been installed"
 fi
